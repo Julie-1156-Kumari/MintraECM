@@ -1,0 +1,162 @@
+You are acting as a Senior Principal MERN Stack Software Engineer & Solutions Architect. Your task is to build a complete, production-ready, enterprise-grade e-commerce application inspired by Myntra.
+
+You must write production-ready, fully functional code. DO NOT omit code, write `// TODOs`, use placeholder boilerplate, or skip file contents under any circumstances.
+
+==================================================
+PROJECT GOALS & REQUIREMENTS
+==================================================
+
+1. Customer Shopping Flow Only:
+   - Search & filter products
+   - View product details
+   - Add/Remove/Update cart items (persisted in local state/Redux)
+   - Guest Checkout & Shipping Address entry
+   - Secure payment via Stripe Payment Intents API + Webhook handling
+   - Post-payment processing:
+     * On Success: Persist Order, generate unique tracking number, trigger Nodemailer HTML email, trigger Twilio SMS, direct to Order Success page.
+     * On Failure: Log failed payment, send Payment Failure email & SMS, allow direct retry payment.
+   - Real-time Order Tracking page with interactive Timeline.
+
+2. Explicit Exclusions (DO NOT IMPLEMENT):
+   - User Registration / Login / JWT Authentication
+   - Wishlist / Reviews / Coupons
+   - Admin Panel / Product Management CRUD / Analytics
+
+==================================================
+TECH STACK & ARCHITECTURE RULES
+==================================================
+
+Frontend Stack:
+- React 19 + Vite (JavaScript / ES Modules)
+- React Router DOM v6+
+- Redux Toolkit (Slices: product, cart, order)
+- Axios (Isolated service layer with central instance/interceptors)
+- Stripe React SDK (@stripe/react-stripe-js, @stripe/stripe-js)
+- React Hook Form + Zod (@hookform/resolvers/zod)
+- React-Toastify / Tailwind CSS / Lucide React
+
+Backend Stack:
+- Node.js + Express.js (ES Modules: `type: "module"`)
+- MongoDB + Mongoose
+- Stripe Node SDK
+- Nodemailer + HTML Templates
+- Twilio Node SDK
+- dotenv + cors + helmet + express-async-handler
+
+Backend Architecture:
+- MVC + Service Layer Architecture:
+  `server/src/`
+  ├── config/        (db.js, stripe.js, twilio.js, nodemailer.js)
+  ├── controllers/   (productController.js, orderController.js, paymentController.js)
+  ├── services/      (productService.js, orderService.js, paymentService.js, emailService.js, smsService.js)
+  ├── models/        (productModel.js, orderModel.js)
+  ├── routes/        (productRoutes.js, orderRoutes.js, paymentRoutes.js)
+  ├── middleware/    (errorMiddleware.js, validateMiddleware.js)
+  ├── utils/         (generateTrackingNumber.js, apiError.js)
+  ├── templates/     (orderConfirmationEmail.js, paymentFailedEmail.js)
+  ├── validators/    (checkoutValidator.js)
+  └── server.js
+
+Frontend Architecture:
+  `client/src/`
+  ├── api/           (axiosInstance.js, productApi.js, orderApi.js, paymentApi.js)
+  ├── assets/        (styles, mock Data fallback if DB empty)
+  ├── components/    (Header, Footer, SearchBar, ProductCard, CartItem, AddressForm, PaymentSummary, TrackingTimeline)
+  ├── pages/         (Home, ProductDetails, Cart, Checkout, Payment, Success, Failure, Tracking)
+  ├── redux/         (store.js, slices/productSlice.js, slices/cartSlice.js, slices/orderSlice.js)
+  ├── utils/         (formatCurrency.js, validationSchemas.js)
+  ├── App.jsx
+  └── main.jsx
+
+==================================================
+STEP-BY-STEP EXECUTION PROTOCOL
+==================================================
+
+You will generate the code systematically step-by-step. For each phase below, create all listed files in full.
+
+--------------------------------------------------
+PHASE 1: ENVIRONMENT & BACKEND FOUNDATION
+--------------------------------------------------
+1. Create `package.json` for root/server with all exact dependencies.
+2. Create `.env.example` containing:
+   `PORT`, `MONGO_URI`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`, `CLIENT_URL`.
+3. Build `server/src/config/db.js` using Mongoose connection retry logic.
+4. Build `server/src/utils/apiError.js` (Custom ApiError class extending Error).
+5. Build `server/src/middleware/errorMiddleware.js` (Central error handling middleware returning formatted JSON).
+
+--------------------------------------------------
+PHASE 2: MONGOOSE MODELS & SEED DATA
+--------------------------------------------------
+1. Build `server/src/models/productModel.js`:
+   Fields: name, brand, description, price, originalPrice, discountPercent, category, images (array), sizes (array), inStock (boolean), rating, numReviews.
+2. Build `server/src/models/orderModel.js`:
+   Fields: customerDetails (name, email, phone), shippingAddress (flatNo, area, town, city, state, pinCode), items (product ref, quantity, size, price), totalAmount, stripePaymentIntentId, paymentStatus ('PENDING', 'PAID', 'FAILED'), orderStatus ('ORDERED', 'PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED'), trackingNumber (indexed, unique), createdAt.
+3. Build `server/src/utils/seedProducts.js` with 10 detailed Myntra-style fashion items (Apparel, Shoes, Accessories) to auto-populate MongoDB on startup if empty.
+
+--------------------------------------------------
+PHASE 3: BACKEND SERVICES, CONTROLLERS & ROUTES
+--------------------------------------------------
+1. Build Notification Services:
+   - `server/src/templates/orderConfirmationEmail.js`: Clean HTML email template.
+   - `server/src/templates/paymentFailedEmail.js`: Clean HTML failure/retry email template.
+   - `server/src/services/emailService.js`: Nodemailer setup with functions `sendOrderConfirmationEmail` and `sendPaymentFailedEmail`.
+   - `server/src/services/smsService.js`: Twilio setup with functions `sendOrderConfirmationSMS` and `sendPaymentFailedSMS`.
+2. Build Payment & Order Utilities:
+   - `server/src/utils/generateTrackingNumber.js`: Function returning unique string like `MYN-TRK-XXXXXX`.
+3. Build Controllers & Services:
+   - `productService.js` / `productController.js`: Fetch products (with search/category query params), fetch product by ID.
+   - `paymentService.js` / `paymentController.js`: 
+     * `createPaymentIntent`: Initializes Stripe PaymentIntent with amount & metadata.
+     * `handleStripeWebhook`: Handles `payment_intent.succeeded` and `payment_intent.payment_failed` events. Updates order status in DB, triggers Nodemailer and Twilio services asynchronously.
+   - `orderService.js` / `orderController.js`:
+     * `createOrder`: Stores initial pending order with items and customer address.
+     * `getOrderByTracking`: Retrieves order details by tracking number.
+     * `retryPayment`: Re-initiates Stripe intent for a failed order.
+4. Mount Express routes in `server/src/server.js` with raw body parser enabled for Stripe webhook endpoint (`/api/payments/webhook`).
+
+--------------------------------------------------
+PHASE 4: FRONTEND FOUNDATION & REDUX TOOLKIT
+--------------------------------------------------
+1. Generate `client/package.json` with standard modern setup.
+2. Build Axios Service Layer:
+   - `client/src/api/axiosInstance.js`: Configured base URL (`http://localhost:5001/api`) and response interceptors.
+   - `client/src/api/productApi.js`, `client/src/api/orderApi.js`, `client/src/api/paymentApi.js`: Abstract all backend requests completely away from components.
+3. Build Redux Slices:
+   - `productSlice.js`: Async thunks for fetching product lists and details.
+   - `cartSlice.js`: Actions for `addToCart`, `removeFromCart`, `updateQuantity`, `clearCart`. LocalStorage persistence.
+   - `orderSlice.js`: Managing shipping details, payment intent status, active order object, tracking details.
+   - `store.js`: Combined store setup.
+
+--------------------------------------------------
+PHASE 5: REUSABLE FRONTEND COMPONENTS & LAYOUTS
+--------------------------------------------------
+1. Build Core Components:
+   - `Header.jsx`: Myntra-style brand logo, nav links, live search bar, cart icon with dynamic badge count.
+   - `Footer.jsx`: Clean footer with customer service info, guarantees, fast delivery badges.
+   - `SearchBar.jsx`: Debounced search input driving URL query state.
+   - `ProductCard.jsx`: Modern card with image, brand name, product title, discounted price tag, original price strike-through, discount percentage, and size badges.
+   - `CartItem.jsx`: Item image, title, size selector, quantity increment/decrement, remove button.
+   - `AddressForm.jsx`: Zod-validated shipping form utilizing React Hook Form for Name, Email, Phone, Flat Number, Area, Town, City, State, PIN Code.
+   - `PaymentSummary.jsx`: Price breakdown (Total MRP, Discount on MRP, Convenience Fee, Total Amount).
+   - `TrackingTimeline.jsx`: Visual step-by-step progress bar showing stages (`ORDERED` -> `PACKED` -> `SHIPPED` -> `OUT_FOR_DELIVERY` -> `DELIVERED`).
+
+--------------------------------------------------
+PHASE 6: FULL PAGES & CHECKOUT/PAYMENT WORKFLOW
+--------------------------------------------------
+1. Build Pages:
+   - `Home.jsx`: Banner carousel, search filters (category, brand), responsive grid of `ProductCard` components.
+   - `ProductDetails.jsx`: Multi-image gallery, product information, size selector, stock indicator, "Add to Cart" and "Buy Now" CTA buttons.
+   - `Cart.jsx`: Cart list using `CartItem`, price summary sidebar, "Proceed to Checkout" CTA.
+   - `Checkout.jsx`: Renders `AddressForm` and order item overview. Navigates to `/payment` on submit.
+   - `Payment.jsx`: Integrates Stripe `@stripe/react-stripe-js` `<Elements>` wrapper and `CardElement`. Handles submit via `paymentApi`, triggers process, handles loading states, error alerts, and redirects.
+   - `Success.jsx`: Displays successful payment message, order summary, generated Tracking Number, and direct link to Order Tracking page.
+   - `Failure.jsx`: Displays payment failure notice, reason, and a prominent "Retry Payment" button.
+   - `Tracking.jsx`: Input for Tracking Number (or auto-populates from URL param) showing real-time order status via `TrackingTimeline`.
+
+--------------------------------------------------
+PHASE 7: APPLICATION ENTRYPOINTS & INTEGRATION
+--------------------------------------------------
+1. Complete `App.jsx` with full React Router DOM setup (`Routes`, `Route`).
+2. Wrap `main.jsx` with Redux `<Provider>` and Toast notifications container.
+
+Begin generating Phase 1 now. Once completed, automatically continue sequentially through all phases until the entire application is fully generated.

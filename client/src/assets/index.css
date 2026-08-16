@@ -1,0 +1,87 @@
+@import 'tailwindcss';
+@import 'react-toastify/dist/ReactToastify.css';
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Outfit', 'Plus Jakarta Sans', ui-sans-serif, sans-serif;
+  --color-brand: #ff3f6c;
+  --color-brand-dark: #e5365f;
+  --color-brand-soft: #fff0f4;
+  --color-ink: #282c3f;
+  --color-muted: #94969f;
+  --color-surface: #f5f5f6;
+  --color-line: #e9e9eb;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: var(--font-sans);
+    color: var(--color-ink);
+    background-color: #ffffff;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@keyframes banner-fade {
+  from {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.banner-enter {
+  animation: banner-fade 0.55s ease-out both;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #ececec 25%, #f7f7f7 37%, #ececec 63%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes tracking-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 63, 108, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(255, 63, 108, 0);
+  }
+}
+
+.tracking-pulse {
+  animation: tracking-pulse 1.8s ease-out infinite;
+}

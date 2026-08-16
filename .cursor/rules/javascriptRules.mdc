@@ -1,0 +1,28 @@
+---
+description: Enforce modern JavaScript best practices, clean architecture, and robust error handling.
+globs: "**/*.js"
+---
+
+# JavaScript Coding Standards
+
+## 1. Syntax & Core Modern Practices
+- Use `const` by default; use `let` only when variable reassignment is mandatory. Never use `var`.
+- Prefer arrow functions `const fn = () => {}` for callbacks and anonymous functions.
+- Use explicit traditional functions for top-level component or module definitions.
+- Implement restructuring for arrays and objects to maintain clean and readable assignments.
+- Always use strict equality `===` and `!==` instead of abstract comparison operators.
+
+## 2. Asynchronous Programming
+- Use `async/await` syntax instead of raw `.then()` and `.catch()` chains.
+- Wrap all asynchronous operations in `try/catch` blocks to ensure execution safety.
+- Utilize `Promise.all()` for concurrent operations that do not depend on each other's sequence.
+
+## 3. Error Handling & Defense
+- Never write empty `catch` blocks; log the error via a tracker or fallback interface.
+- Provide descriptive, user-friendly error messages instead of leaking raw system errors.
+- Validate external API payloads and functions input arguments before processing data.
+
+## 4. Performance & Formatting
+- Avoid global variable declarations to prevent memory leaks and namespace pollution.
+- Use optional chaining `?.` and nullish coalescing `??` to prevent "cannot read property of undefined" errors.
+- Keep components and modular functions focused on a single responsibility.
