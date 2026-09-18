@@ -1,4 +1,5 @@
 import ApiError from '../utils/apiError.js';
+import { redactSecrets } from '../utils/redact.js';
 
 /**
  * Catch 404 routes that were not matched by any router.
@@ -39,18 +40,21 @@ export const errorHandler = (err, req, res, next) => {
     message = 'Validation failed';
   }
 
-  if (process.env.NODE_ENV !== 'production') {
-    console.error('[Error]', {
-      statusCode,
-      message,
-      stack: err.stack,
-    });
-  }
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  console.error('[Error]', {
+    timestamp: new Date().toISOString(),
+    method: req.method,
+    path: req.originalUrl,
+    status: statusCode,
+    message: redactSecrets(message),
+    stack: redactSecrets(err.stack || ''),
+  });
 
   res.status(statusCode).json({
     success: false,
-    message,
+    message: isProduction ? redactSecrets(message) : message,
     errors: errors.length ? errors : undefined,
-    stack: process.env.NODE_ENV === 'production' ? undefined : err.stack,
+    stack: isProduction ? undefined : err.stack,
   });
 };

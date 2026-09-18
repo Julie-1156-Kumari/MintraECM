@@ -1,8 +1,6 @@
-import dotenv from 'dotenv';
+import '../config/loadEnv.js';
 import connectDB from '../config/db.js';
 import Product from '../models/productModel.js';
-
-dotenv.config();
 
 /**
  * Catalog seed data — same styles as the client demo catalog,

@@ -1,6 +1,8 @@
 import { getTransporter } from '../config/nodemailer.js';
+import { getClientUrl } from '../config/clientUrl.js';
 import { buildOrderConfirmationEmail } from '../templates/orderConfirmationEmail.js';
 import { buildPaymentFailedEmail } from '../templates/paymentFailedEmail.js';
+import { redactEmail } from '../utils/redact.js';
 
 /**
  * Strip HTML tags for a plain-text email fallback.
@@ -31,7 +33,7 @@ export const sendMail = async ({ to, subject, html, text }) => {
   const transporter = getTransporter();
 
   if (!transporter) {
-    console.warn(`[emailService] Skipped email to ${to}: SMTP not configured`);
+    console.warn(`[emailService] Skipped email to ${redactEmail(to)}: SMTP not configured`);
     return { skipped: true, reason: 'SMTP_NOT_CONFIGURED' };
   }
 
@@ -55,7 +57,7 @@ export const sendMail = async ({ to, subject, html, text }) => {
       },
     });
 
-    console.log(`[emailService] Sent "${subject}" → ${to} (${info.messageId})`);
+    console.log(`[emailService] Sent "${subject}" → ${redactEmail(to)} (${info.messageId})`);
 
     return {
       skipped: false,
@@ -64,7 +66,7 @@ export const sendMail = async ({ to, subject, html, text }) => {
       rejected: info.rejected,
     };
   } catch (error) {
-    console.error(`[emailService] Failed to send "${subject}" → ${to}: ${error.message}`);
+    console.error(`[emailService] Failed to send "${subject}" → ${redactEmail(to)}: ${error.message}`);
     throw error;
   }
 };
@@ -88,7 +90,7 @@ export const sendOrderConfirmationEmail = async (order) => {
     `Your MintraECM order is confirmed.\n` +
     `Tracking Number: ${tracking}\n` +
     `Amount Paid: Rs.${amount}\n\n` +
-    `Track your order: ${(process.env.CLIENT_URL || 'http://localhost:5173')}/tracking/${tracking}\n\n` +
+    `Track your order: ${getClientUrl()}/tracking/${tracking}\n\n` +
     `Thank you for shopping with MintraECM.`;
 
   return sendMail({
@@ -115,7 +117,7 @@ export const sendPaymentFailedEmail = async (order, failureReason) => {
   const tracking = order.trackingNumber || 'N/A';
   const reason = failureReason || 'Your payment could not be processed.';
   const amount = Number(order.totalAmount || 0).toLocaleString('en-IN');
-  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  const clientUrl = getClientUrl();
   const retryUrl = `${clientUrl}/failure?orderId=${order._id}&tracking=${tracking}`;
 
   const text =

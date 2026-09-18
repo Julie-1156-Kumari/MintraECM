@@ -1,3 +1,5 @@
+import { getClientUrl } from '../config/clientUrl.js';
+
 /**
  * Escape user-controlled strings for safe HTML email interpolation.
  * @param {*} value
@@ -17,11 +19,12 @@ const escapeHtml = (value) =>
  * @param {string} [failureReason]
  * @returns {string}
  */
+
 export const buildPaymentFailedEmail = (
   order,
   failureReason = 'Your payment could not be processed.'
 ) => {
-  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  const clientUrl = getClientUrl();
   const customerName = escapeHtml(order.customerDetails?.name || 'Customer');
   const trackingNumber = escapeHtml(order.trackingNumber || '');
   const reason = escapeHtml(failureReason);

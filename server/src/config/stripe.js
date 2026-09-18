@@ -1,12 +1,32 @@
 import Stripe from 'stripe';
-import dotenv from 'dotenv';
 
-if (!process.env.STRIPE_SECRET_KEY) {
+const secretKey = String(process.env.STRIPE_SECRET_KEY || '').trim();
+const isPlaceholderKey = !secretKey || /placeholder/i.test(secretKey);
+
+if (isPlaceholderKey) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('STRIPE_SECRET_KEY is not set. Refusing to start in production.');
+  }
   console.warn('STRIPE_SECRET_KEY is not set. Stripe payments will fail until configured.');
-}else{
-  console.log("Stripe Connected:=> ");
+} else {
+  console.log('Stripe Connected:=> ');
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder');
+const missingKeyClient = {
+  get() {
+    throw new Error('STRIPE_SECRET_KEY is not set. Stripe payments cannot run.');
+  },
+};
+
+const stripe = !isPlaceholderKey
+  ? new Stripe(secretKey)
+  : new Proxy(
+      {},
+      {
+        get() {
+          return missingKeyClient.get();
+        },
+      }
+    );
 
 export default stripe;

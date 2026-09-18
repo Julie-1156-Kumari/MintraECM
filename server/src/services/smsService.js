@@ -1,4 +1,6 @@
 import { getTwilioClient, getTwilioPhoneNumber } from '../config/twilio.js';
+import { getClientUrl } from '../config/clientUrl.js';
+import { redactPhone } from '../utils/redact.js';
 
 const MAX_SMS_LENGTH = 320;
 
@@ -32,7 +34,7 @@ export const normalizePhone = (phone) => {
     return `+${digits}`;
   }
 
-  throw new Error(`Invalid phone number: ${phone}`);
+  throw new Error('Invalid phone number');
 };
 
 /**
@@ -56,7 +58,7 @@ export const sendSMS = async (to, body) => {
   const from = getTwilioPhoneNumber();
 
   if (!client || !from) {
-    console.warn(`[smsService] Skipped SMS to ${to}: Twilio not configured`);
+    console.warn(`[smsService] Skipped SMS to ${redactPhone(to)}: Twilio not configured`);
     return { skipped: true, reason: 'TWILIO_NOT_CONFIGURED' };
   }
 
@@ -82,7 +84,7 @@ export const sendSMS = async (to, body) => {
       body: messageBody,
     });
 
-    console.log(`[smsService] SMS sent → ${destination} (${message.sid})`);
+    console.log(`[smsService] SMS sent → ${redactPhone(destination)} (${message.sid})`);
 
     return {
       skipped: false,
@@ -92,7 +94,7 @@ export const sendSMS = async (to, body) => {
       from: message.from,
     };
   } catch (error) {
-    console.error(`[smsService] Failed to send SMS → ${destination}: ${error.message}`);
+    console.error(`[smsService] Failed to send SMS → ${redactPhone(destination)}: ${error.message}`);
     throw error;
   }
 };
@@ -111,7 +113,7 @@ export const sendOrderConfirmationSMS = async (order) => {
 
   const tracking = order.trackingNumber || 'N/A';
   const amount = Number(order.totalAmount || 0).toLocaleString('en-IN');
-  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  const clientUrl = getClientUrl();
 
   const body =
     `MintraECM: Order confirmed! Tracking ${tracking}. ` +
@@ -135,7 +137,7 @@ export const sendPaymentFailedSMS = async (order, failureReason) => {
 
   const tracking = order.trackingNumber || 'N/A';
   const amount = Number(order.totalAmount || 0).toLocaleString('en-IN');
-  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  const clientUrl = getClientUrl();
   const reason = failureReason
     ? ` Reason: ${String(failureReason).slice(0, 80)}`
     : '';

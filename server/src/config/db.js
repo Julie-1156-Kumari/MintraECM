@@ -47,8 +47,9 @@ const connectDB = async (retries = 0) => {
       return connectDB(retries + 1);
     }
 
-    console.error('Exhausted MongoDB connection retries. Exiting.');
-    process.exit(1);
+    throw new Error(
+      `Exhausted MongoDB connection retries after ${MAX_RETRIES} attempts: ${error.message}`
+    );
   }
 };
 

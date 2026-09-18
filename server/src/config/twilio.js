@@ -1,5 +1,4 @@
 import twilio from 'twilio';
-import dotenv from 'dotenv';
 
 let twilioClient = null;
 let verified = false;

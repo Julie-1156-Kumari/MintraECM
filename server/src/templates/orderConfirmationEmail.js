@@ -1,3 +1,5 @@
+import { getClientUrl } from "../config/clientUrl.js";
+
 /**
  * Escape user-controlled strings for safe HTML email interpolation.
  * @param {*} value
@@ -16,8 +18,9 @@ const escapeHtml = (value) =>
  * @param {Object} order
  * @returns {string}
  */
+
 export const buildOrderConfirmationEmail = (order) => {
-  const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+  const clientUrl = getClientUrl();
   const customerName = escapeHtml(order.customerDetails?.name || "Customer");
   const trackingNumber = escapeHtml(order.trackingNumber || "");
   const totalAmount = Number(order.totalAmount || 0).toLocaleString("en-IN");
